@@ -1,0 +1,16 @@
+{
+  "name": "decision-poker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:css && npm run build:alpine",
+    "build:css": "npx tailwindcss -i ./src/tailwind.css -o ./assets/tailwind.css --minify",
+    "build:alpine": "node -e \"const fs=require('fs');fs.mkdirSync('assets',{recursive:true});fs.copyFileSync(require.resolve('alpinejs/dist/cdn.min.js'),'assets/alpine.js');\""
+  },
+  "dependencies": {
+    "alpinejs": "^3.14.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.10"
+  }
+}

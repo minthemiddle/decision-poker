@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="de" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=space-grotesk:400,500,600,700" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/tailwind.css">
+    <script defer src="/assets/alpine.js"></script>
+    <title>Decision Poker</title>
+</head>
+
+<body class="h-full bg-ink text-slate-100 font-display antialiased overflow-x-hidden" x-data="app()" x-init="init()"
+    @keydown.escape.window="handleEscape()" :class="{ 'overflow-hidden': presentMode }">
+    <div class="pointer-events-none fixed inset-0 overflow-hidden">
+        <div
+            class="absolute -left-10 -top-10 h-64 w-64 rounded-full bg-gradient-to-br from-accent/40 via-pink-500/30 to-glow/30 blur-3xl opacity-40">
+        </div>
+        <div
+            class="absolute right-0 top-10 h-72 w-72 rounded-full bg-gradient-to-br from-glow/40 via-blue-500/30 to-indigo-500/40 blur-3xl opacity-35">
+        </div>
+        <div
+            class="absolute bottom-0 left-1/4 h-60 w-60 rounded-full bg-gradient-to-br from-amber-400/30 via-rose-500/25 to-accent/30 blur-3xl opacity-35">
+        </div>
+    </div>
+
+    <main class="relative mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-4 py-10 sm:px-8 overflow-x-hidden">
+        <header class="flex flex-col gap-2">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-3xl font-semibold sm:text-4xl">
+                    <span class="text-white" x-text="t('title')"></span>
+                    <span class="bg-gradient-to-r from-glow to-accent bg-clip-text text-transparent"
+                        x-text="t('subtitle')"></span>
+                </div>
+                <div
+                    class="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-1 py-0.5 text-[11px] font-semibold text-mist shadow-soft backdrop-blur">
+                    <button type="button" :class="lang === 'de' ? 'bg-white text-ink shadow-soft' : 'text-mist/80'"
+                        class="rounded-full px-2 py-0.5 transition" @click="switchLang('de')">DE</button>
+                    <button type="button" :class="lang === 'en' ? 'bg-white text-ink shadow-soft' : 'text-mist/80'"
+                        class="rounded-full px-2 py-0.5 transition" @click="switchLang('en')">EN</button>
+                </div>
+            </div>
+            <p class="text-sm text-mist/70" x-text="t('headerTagline')"></p>
+        </header>
+
+        <section class="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-soft backdrop-blur">
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.3em] text-mist/60" x-text="t('stagesLabel')"></p>
+                    <h2 class="text-2xl font-semibold text-white" x-text="t('stagesTitle')"></h2>
+                </div>
+                <p class="text-sm text-mist/80" x-text="t('stagesHint')"></p>
+            </div>
+            <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <template x-for="stage in stages" :key="stage.key">
+                    <button type="button"
+                        class="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-white/0 p-4 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-white/20 hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-glow/50"
+                        @click="selectStage(stage)">
+                        <div class="absolute inset-0 opacity-70 transition group-hover:opacity-100"
+                            :style="`background: linear-gradient(135deg, ${stage.colors[0]}, ${stage.colors[1]});`">
+                        </div>
+                        <div
+                            class="relative flex flex-col gap-2 rounded-xl border border-white/20 bg-slate-900/60 p-4 backdrop-blur">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs uppercase tracking-[0.2em] text-white/80"
+                                    x-text="stage.badge"></span>
+                                <span class="text-sm font-semibold text-white/70" x-text="stage.number"></span>
+                            </div>
+                            <h3 class="text-xl font-semibold leading-tight text-white" x-text="stage.title"></h3>
+                            <p class="text-sm text-mist/80" x-text="stage.subtitle"></p>
+                            <div class="flex items-center justify-between pt-1 text-xs text-white/70">
+                                <span class="flex items-center gap-2">
+                                    <span class="h-2 w-2 rounded-full bg-white/70"></span>
+                                    <span x-text="t('tapToChoose')"></span>
+                                </span>
+                            </div>
+                            <div x-show="selectedStage && selectedStage.key === stage.key"
+                                class="mt-2 rounded-lg border border-glow/40 bg-glow/10 px-3 py-2 text-xs font-semibold text-glow ring-1 ring-inset ring-white/10"
+                                x-text="t('currentlySelected')"></div>
+                        </div>
+                    </button>
+                </template>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        function app() {
+            const strings = {
+                de: {
+                    title: 'Decision',
+                    subtitle: ' Poker',
+                    language: 'Sprache',
+                    headerTagline: 'Delegation Poker – Karte wählen und zeigen.',
+                    setupTitle: 'Thema & Kontext',
+                    setupHint: 'Optional ausfüllen – hilft beiden, wenn das Entscheidungsfeld unklar ist.',
+                    topicLabel: 'Thema der Entscheidung (optional)',
+                    topicLabelShort: 'Thema:',
+                    topicPlaceholder: 'z. B. Roadmap Q4, Budget, Rollenklärung...',
+                    commentLabel: 'Kommentar / Begründung (optional)',
+                    commentLabelShort: 'Kommentar:',
+                    commentPlaceholder: 'Warum diese Stufe? Was ist dir wichtig?',
+                    instruction: 'Jede Seite wählt selbst – zeigt dann eure Karten.',
+                    yourPick: 'Deine Karte zum Vorzeigen',
+                    reset: 'Zurücksetzen',
+                    detailTitle: 'Karte auswählen, dann optional ergänzen',
+                    detailHint: 'Wähle eine Stufe, dann Thema/Kommentar ergänzen.',
+                    detailHintSelected: 'Optional Thema und Kommentar ergänzen, dann präsentieren.',
+                    pickFirst: 'Erst Stufe wählen',
+                    addDetails: 'Details zeigen',
+                    hideDetails: 'Details ausblenden',
+                    selectedStage: 'Ausgewählte Stufe',
+                    noStage: 'Keine Karte gewählt',
+                    noStageHint: 'Tippe auf eine Karte, um sie zu wählen.',
+                    optional: '— optional —',
+                    showHint: 'Halte das Handy in die Kamera deines Gegenübers – klare Karte, keine App-Anmeldung.',
+                    present: 'Präsentieren',
+                    back: 'Zurück',
+                    stagesLabel: 'Stufen',
+                    stagesTitle: 'Delegation Cards',
+                    stagesHint: 'Sieben Stufen von „ich entscheide“ bis „ihr entscheidet“.',
+                    tapToChoose: 'Tippen zum Wählen',
+                    currentlySelected: 'Aktuell gewählt',
+                    stages: [
+                        { key: 'announce', number: '01', title: 'Verkünden', subtitle: 'Ich informiere über meine Entscheidung.', badge: 'Ich entscheide', colors: ['#8b5cf6', '#22d3ee'] },
+                        { key: 'sell', number: '02', title: 'Verkaufen', subtitle: 'Ich entscheide und erläutere meine Gründe.', badge: 'Ich entscheide', colors: ['#22d3ee', '#14b8a6'] },
+                        { key: 'ask', number: '03', title: 'Befragen', subtitle: 'Ich hole mir vor meiner Entscheidung Rat.', badge: 'Input vor Entscheidung', colors: ['#14b8a6', '#a3e635'] },
+                        { key: 'agree', number: '04', title: 'Einigen', subtitle: 'Wir treffen die Entscheidung gemeinsam.', badge: 'Gemeinsam', colors: ['#f59e0b', '#ec4899'] },
+                        { key: 'advise', number: '05', title: 'Beraten', subtitle: 'Ich biete meinen Rat an, aber du entscheidest.', badge: 'Du entscheidest', colors: ['#ec4899', '#8b5cf6'] },
+                        { key: 'inquire', number: '06', title: 'Erkundigen', subtitle: 'Ich erkundige mich nach deiner Entscheidung.', badge: 'Du entscheidest', colors: ['#22d3ee', '#6366f1'] },
+                        { key: 'delegate', number: '07', title: 'Delegieren', subtitle: 'Du triffst die Entscheidung und musst mich nicht informieren.', badge: 'Du entscheidest', colors: ['#6366f1', '#f97316'] }
+                    ]
+                },
+                en: {
+                    title: 'Decision',
+                    subtitle: ' Poker',
+                    language: 'Language',
+                    headerTagline: 'Delegation poker — pick your card and show it.',
+                    setupTitle: 'Topic & Context',
+                    setupHint: 'Optional but helpful when the decision space is fuzzy.',
+                    topicLabel: 'Decision topic (optional)',
+                    topicLabelShort: 'Topic:',
+                    topicPlaceholder: 'E.g. Q4 roadmap, budget, role clarity...',
+                    commentLabel: 'Comment / Why (optional)',
+                    commentLabelShort: 'Comment:',
+                    commentPlaceholder: 'Why this level? What matters to you?',
+                    instruction: 'Each of you picks separately—then show your cards.',
+                    yourPick: 'Your card to show',
+                    reset: 'Reset',
+                    detailTitle: 'Choose a card, then add context',
+                    detailHint: 'Pick a stage first, then add topic/comment if useful.',
+                    detailHintSelected: 'Optionally add topic/comment, then present.',
+                    pickFirst: 'Pick a stage first',
+                    addDetails: 'Show details',
+                    hideDetails: 'Hide details',
+                    selectedStage: 'Selected stage',
+                    noStage: 'No card chosen',
+                    noStageHint: 'Tap a card to select it.',
+                    optional: '— optional —',
+                    showHint: 'Show this card to the other phone—no login, just a clear stance.',
+                    present: 'Present',
+                    back: 'Back',
+                    stagesLabel: 'Levels',
+                    stagesTitle: 'Delegation Cards',
+                    stagesHint: 'Seven levels from “I decide” to “you decide.”',
+                    tapToChoose: 'Tap to choose',
+                    currentlySelected: 'Currently selected',
+                    stages: [
+                        { key: 'announce', number: '01', title: 'Announce', subtitle: 'I’m telling you my decision.', badge: 'I decide', colors: ['#8b5cf6', '#22d3ee'] },
+                        { key: 'sell', number: '02', title: 'Sell', subtitle: 'I decide and explain my reasons.', badge: 'I decide', colors: ['#22d3ee', '#14b8a6'] },
+                        { key: 'ask', number: '03', title: 'Consult', subtitle: 'I seek your advice before deciding.', badge: 'Advice first', colors: ['#14b8a6', '#a3e635'] },
+                        { key: 'agree', number: '04', title: 'Agree', subtitle: 'We decide together.', badge: 'Together', colors: ['#f59e0b', '#ec4899'] },
+                        { key: 'advise', number: '05', title: 'Advise', subtitle: 'I offer my advice, you decide.', badge: 'You decide', colors: ['#ec4899', '#8b5cf6'] },
+                        { key: 'inquire', number: '06', title: 'Inquire', subtitle: 'I ask about your decision.', badge: 'You decide', colors: ['#22d3ee', '#6366f1'] },
+                        { key: 'delegate', number: '07', title: 'Delegate', subtitle: 'You decide and do not need to inform me.', badge: 'You decide', colors: ['#6366f1', '#f97316'] }
+                    ]
+                }
+            };
+
+            return {
+                lang: 'de',
+                stages: [],
+                selectedStage: null,
+                topic: '',
+                comment: '',
+                presentMode: false,
+                showDetail: false,
+                init() {
+                    this.stages = strings[this.lang].stages;
+                    document.documentElement.lang = this.lang;
+                },
+                switchLang(locale) {
+                    this.lang = locale;
+                    this.stages = strings[locale].stages;
+                    document.documentElement.lang = locale;
+                    if (this.selectedStage) {
+                        const match = this.stages.find(s => s.key === this.selectedStage.key);
+                        this.selectedStage = match || null;
+                    }
+                },
+                t(key) {
+                    return strings[this.lang][key];
+                },
+                selectStage(stage) {
+                    this.selectedStage = stage;
+                    this.showDetail = true;
+                    this.presentMode = false;
+                },
+                handleEscape() {
+                    if (this.presentMode) {
+                        this.clearSelection();
+                    } else {
+                        this.clearSelection();
+                    }
+                },
+                clearSelection() {
+                    this.selectedStage = null;
+                    this.topic = '';
+                    this.comment = '';
+                    this.presentMode = false;
+                    this.showDetail = false;
+                }
+            };
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {
+                    console.warn('Service worker registration failed.');
+                });
+            });
+        }
+    </script>
+    <div x-show="selectedStage" x-transition x-cloak
+        class="fixed inset-x-0 bottom-0 z-40 px-3 pb-0 sm:px-4 pointer-events-none">
+        <div
+            class="mx-auto max-w-3xl rounded-t-2xl border border-slate-800 bg-slate-900 p-4 shadow-2xl pointer-events-auto">
+            <div class="flex items-start gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-glow to-accent px-2.5 py-1 text-[13px] font-bold text-ink shadow-soft"
+                                    x-text="selectedStage?.number"></span>
+                                <p class="text-lg font-semibold text-white truncate" x-text="selectedStage?.title"></p>
+                            </div>
+                            <p class="text-sm text-white/80" x-text="selectedStage?.subtitle"></p>
+                        </div>
+                        <button type="button"
+                            class="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/90 shadow-soft transition hover:bg-white/25"
+                            @click="clearSelection()">
+                            <span x-text="t('reset')"></span>
+                        </button>
+                    </div>
+                    <div x-show="showDetail" x-transition class="mt-3 space-y-2">
+                        <label class="block">
+                            <span class="text-xs uppercase tracking-wide text-mist/70" x-text="t('topicLabel')"></span>
+                            <input type="text" x-model="topic" :placeholder="t('topicPlaceholder')"
+                                class="mt-1 w-full rounded-xl border border-white/15 bg-slate-800 px-4 py-3 text-base text-white placeholder:text-white/60 focus:border-glow/60 focus:outline-none focus:ring-2 focus:ring-glow/40">
+                        </label>
+                        <label class="block">
+                            <span class="text-xs uppercase tracking-wide text-mist/70"
+                                x-text="t('commentLabel')"></span>
+                            <textarea rows="3" x-model="comment" :placeholder="t('commentPlaceholder')"
+                                class="mt-1 w-full rounded-xl border border-white/15 bg-slate-800 px-4 py-3 text-base text-white placeholder:text-white/60 focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/40"></textarea>
+                        </label>
+                    </div>
+                    <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <p class="text-sm text-white/80 flex items-center gap-2">
+                            <span class="text-glow">●</span>
+                            <span x-text="showDetail ? t('detailHintSelected') : t('detailHint')"></span>
+                        </p>
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <button type="button"
+                                class="rounded-full bg-white/12 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/90 shadow-soft transition hover:bg-white/20"
+                                @click="showDetail = !showDetail"
+                                x-text="showDetail ? t('hideDetails') : t('addDetails')"></button>
+                            <button type="button"
+                                class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-glow to-accent px-4 py-3 text-sm font-semibold uppercase tracking-wide text-ink shadow-soft transition hover:brightness-105 disabled:opacity-40 disabled:hover:brightness-100"
+                                :disabled="!selectedStage" @click="selectedStage && (presentMode = true)">
+                                <span>▣</span>
+                                <span x-text="t('present')"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div x-show="presentMode" x-transition x-cloak
+        class="fixed inset-0 z-50 flex flex-col bg-ink text-white overflow-hidden" @click.self="presentMode = false">
+        <button type="button"
+            class="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-mist shadow-soft backdrop-blur transition hover:bg-white/20"
+            @click.stop="presentMode = false" aria-label="Back">
+            <span>←</span>
+            <span x-text="t('back')"></span>
+        </button>
+        <button type="button"
+            class="absolute right-4 top-4 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-mist shadow-soft backdrop-blur transition hover:bg-white/20"
+            @click.stop="presentMode = false" aria-label="Close">×</button>
+        <div class="pointer-events-none absolute inset-0 overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-glow/40 via-ink to-accent/50"></div>
+            <div class="absolute left-1/3 top-10 h-64 w-64 -translate-x-1/2 rounded-full bg-white/10 blur-3xl"></div>
+            <div
+                class="absolute right-0 bottom-0 h-80 w-80 translate-x-1/3 translate-y-1/4 rounded-full bg-white/10 blur-3xl">
+            </div>
+        </div>
+        <div class="relative flex flex-1 flex-col items-center justify-center px-6 text-center">
+            <p class="text-sm uppercase tracking-[0.3em] text-white/70" x-text="t('selectedStage')"></p>
+            <div
+                class="mt-3 flex items-center justify-center gap-3 rounded-3xl border border-white/20 bg-white/10 px-5 py-3 shadow-soft backdrop-blur">
+                <span class="text-2xl font-bold text-glow" x-text="selectedStage ? selectedStage.number : ''"></span>
+                <div class="text-left">
+                    <p class="text-4xl font-semibold leading-tight sm:text-5xl"
+                        x-text="selectedStage ? selectedStage.title : ''"></p>
+                    <p class="mt-2 text-lg text-white/80 sm:text-xl"
+                        x-text="selectedStage ? selectedStage.subtitle : ''"></p>
+                </div>
+            </div>
+            <div class="mt-6 max-w-3xl space-y-3 text-lg text-white/85 sm:text-2xl">
+                <p class="font-semibold" x-text="topic || t('topicPlaceholder')"></p>
+                <p class="text-white/80" x-text="comment || t('commentPlaceholder')"></p>
+            </div>
+            <p class="mt-8 text-xs uppercase tracking-[0.2em] text-white/60" x-text="t('showHint')"></p>
+        </div>
+    </div>
+</body>
+
+</html>
