@@ -1,0 +1,17 @@
+{
+  "name": "Decision Poker",
+  "short_name": "Decide",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "description": "Lightweight delegation poker for two phones, bilingual (DE/EN) with topic and comment fields.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
